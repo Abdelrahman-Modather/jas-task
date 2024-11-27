@@ -1,3 +1,10 @@
+if (localStorage.getItem("cartItems")) {
+    cartItems = JSON.parse(localStorage.getItem("cartItems"));
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("cartCounter").innerText = cartItems.length;
+        updateCartDisplay();
+    });
+}
 var cartItems = [];
 var allProducts = [];
 
@@ -33,6 +40,15 @@ req.onreadystatechange = function () {
         searchInput.style.width = "500px";
         searchInput.style.borderColor = "#10375C";
         searchInput.style.borderRadius = "5px";
+        searchInput.addEventListener("keyup", function () {
+            var searchTerm = searchInput.value.toLowerCase();
+            var filteredProducts = allProducts.filter(product =>
+                product.title.toLowerCase().includes(searchTerm) ||
+                product.description.toLowerCase().includes(searchTerm) ||
+                product.category.toLowerCase().includes(searchTerm)
+            );
+            displayProducts(filteredProducts);
+        });
 
         var searchButton = document.createElement("button");
         searchButton.setAttribute("type", "button");
@@ -174,7 +190,7 @@ function getdata(data, container) {
     article.style.backgroundColor = "#F4F6FF";
     article.style.width = "400px";
     article.style.margin = "10px";
-    article.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.1)";
+    article.style.boxShadow = "0 10px 12px rgba(0, 0, 0, 0.1)";
     article.style.padding = "20px";
     article.style.borderRadius = "10px";
 
@@ -187,12 +203,15 @@ function getdata(data, container) {
 
     var title = document.createElement("h3");
     title.innerText = data.title;
+    title.style.fontSize = "24px";
+    title.style.height = "30px";
     title.style.fontFamily = "'Lilita One', serif";
     title.style.color = "#10375C";
 
     var description = document.createElement("p");
     description.innerText = data.description;
     description.style.color = "#10375C";
+    description.style.fontSize = "12px";
 
     var price = document.createElement("p");
     price.innerText = `Price: $${data.price}`;
@@ -201,7 +220,7 @@ function getdata(data, container) {
 
     var priceWithDiscount = document.createElement("p");
     if (data.discountPercentage > 0) {
-        priceWithDiscount.innerText = `Discounted: $${(data.price - (data.price * data.discountPercentage / 100)).toFixed(2)}`;
+        priceWithDiscount.innerText = `$${(data.price - (data.price * data.discountPercentage / 100)).toFixed(2)}`;
         priceWithDiscount.style.color = "#EB8317";
     }
 
@@ -212,6 +231,9 @@ function getdata(data, container) {
     var button = document.createElement("button");
     button.innerText = "Add to Cart";
     button.style.padding = "10px";
+    button.style.width = "100%";
+    button.style.fontSize = "19px";
+    button.style.fontWeight = "bold";
     button.style.backgroundColor = "#EB8317";
     button.style.color = "white";
     button.style.border = "none";
@@ -220,11 +242,19 @@ function getdata(data, container) {
 
     button.addEventListener("click", function () {
         cartItems.push(data);
+    
+        // Update cart count and UI
         document.getElementById("cartCounter").innerText = cartItems.length;
+    
+        // Save cart to localStorage
+        localStorage.setItem("cartItems", JSON.stringify(cartItems));
+    
+        // Disable button to indicate the item is in the cart
         button.style.backgroundColor = "#666";
         button.innerText = "Added to Cart";
         button.disabled = true;
-
+    
+        // Show notification
         var notification = document.createElement("div");
         notification.style.position = "fixed";
         notification.style.bottom = "20px";
@@ -235,11 +265,12 @@ function getdata(data, container) {
         notification.style.borderRadius = "5px";
         notification.innerText = `${data.title} added to cart!`;
         document.body.appendChild(notification);
-
+    
         setTimeout(() => notification.remove(), 2000);
-
+    
         updateCartDisplay();
     });
+    
 
     article.append(img, title, description, price, priceWithDiscount, rating, button);
     container.appendChild(article);
@@ -258,19 +289,48 @@ function getStars(rating) {
     return stars;
 }
 
+
 function updateCartDisplay() {
     var cartItemsList = document.getElementById("cartItemsList");
     var cartTotal = document.getElementById("cartTotal");
     cartItemsList.innerHTML = "";
 
     var total = 0;
-    cartItems.forEach(item => {
+    cartItems.forEach((item, index) => {
         var li = document.createElement("li");
+        li.style.display = "flex";
+        li.style.justifyContent = "space-between";
+        li.style.alignItems = "center";
         li.style.padding = "5px 0";
-        li.innerText = `${item.title} - $${item.price}`;
+
+        var itemText = document.createElement("span");
+        itemText.innerText = `${item.title} - $${item.price}`;
+
+        var removeButton = document.createElement("button");
+        removeButton.innerText = "Remove";
+        removeButton.style.marginLeft = "10px";
+        removeButton.style.padding = "5px";
+        removeButton.style.backgroundColor = "#EB8317";
+        removeButton.style.color = "white";
+        removeButton.style.border = "none";
+        removeButton.style.borderRadius = "5px";
+        removeButton.style.cursor = "pointer";
+
+        // Add click event for removing the item
+        removeButton.addEventListener("click", function () {
+            cartItems.splice(index, 1);
+            localStorage.setItem("cartItems", JSON.stringify(cartItems));
+            document.getElementById("cartCounter").innerText = cartItems.length;
+            updateCartDisplay();
+        });
+
+        li.appendChild(itemText);
+        li.appendChild(removeButton);
         cartItemsList.appendChild(li);
+
         total += item.price;
     });
 
     cartTotal.innerHTML = `<strong>Total: $${total.toFixed(2)}</strong>`;
 }
+
